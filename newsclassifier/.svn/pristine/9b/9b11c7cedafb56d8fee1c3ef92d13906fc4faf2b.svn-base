@@ -1,0 +1,145 @@
+package com.yuan.service;
+
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.ansj.domain.Term;
+
+import com.yuan.bean.Classifier;
+import com.yuan.util.ArticleParticiple;
+
+public class NaiveBayesClassifier {
+	
+	public Classifier classifier = new Classifier();
+	
+	/**
+	 * 对文章doc分词并出掉标点符号及空格
+	 * @param doc
+	 * @return
+	 */
+	public  Set<String> getWords(String doc){
+		List<Term> parse  = ArticleParticiple.toAnalysis(doc);
+		String temp;
+		for(int i=0; i<parse.size(); i++){
+			temp = parse.get(i).toString();
+			if("　".equals(temp) || " ".equals(temp)){
+				parse.remove(i);
+				i--;
+				continue;
+			}
+			if("/w".equals(temp.substring(temp.indexOf("/")))){
+				parse.remove(i);
+				i--;
+			}
+		}
+		return dictWords(parse);
+	}
+	
+	/**
+	 * 去除新闻中重复的词
+	 * @param listTerm
+	 * @return
+	 */
+	public Set<String> dictWords(List<Term> listTerm){
+		Set<String> setWords = new HashSet<String>();
+		for(Term term : listTerm){
+			setWords.add(term.toString().substring(0, term.toString().indexOf("/")));
+		}
+		return setWords;
+	}
+	
+	/**
+	 * 将内容项item拆分为彼此独立的特征，针对该分类为每个特征增加计数值，增加针对该分类的总计数值
+	 * @param item
+	 * @param cat
+	 */
+	public void train(String item, String cat){
+		Set<String> features = getWords(item);
+		//针对该分类为每个特征增加计数值
+		for(String feature : features){
+			classifier.incf(feature, cat);
+		}
+		
+		//增加针对该分类的计数值
+		classifier.incc(cat);
+	}
+	
+	/**
+	 * 单词在分类中出现的概率
+	 * @param f
+	 * @param cat
+	 * @return
+	 */
+	public float fprob(String f, String cat){
+		if(classifier.catCount(cat) == 0){
+			return 0;
+		}
+		return (float)classifier.fCount(f, cat)/classifier.catCount(cat);
+	}
+	
+	/**
+	 * 对单词的概率进行加权平均，避免在训练初期，应对极少出现的单词
+	 * @param f
+	 * @param cat
+	 * @return
+	 */
+	public float weigthedprob(String f, String cat){
+		//计算当前概率值
+		float basicProb = fprob(f, cat);
+		//统计特征在所有分类中出现的次数
+		int totals = 0;
+		float weight = 1.0f, ap = 0.5f;
+		Set<String> keysSet = classifier.categories();
+		for(String key : keysSet){
+			totals += classifier.fCount(f, key);
+		}
+		//计算加权平均
+		return ((weight * ap) + (totals * basicProb)) / (weight + totals);
+	}
+	
+	/**
+	 * 计算整篇文档的概率，Pr(Document/Category)
+	 * @param item
+	 * @param cat
+	 * @return
+	 */
+	public float docProb(String item, String cat){
+		Set<String> keysSet = getWords(item);
+		float p = 1;
+		for(String key : keysSet){
+			p *= weigthedprob(key, cat);
+		}
+		return p;
+	}
+	
+	/**
+	 * 计算分类的概率
+	 * @param item
+	 * @param cat
+	 * @return
+	 */
+	public float prob(String item, String cat){
+		float catProb = (float)classifier.catCount(cat) / classifier.totalCount();
+		float docProb = docProb(item, cat);
+		return catProb * docProb;
+	}
+	
+	
+	public static void main(String[] args) {
+		NaiveBayesClassifier nbc = new NaiveBayesClassifier();
+		nbc.train("你好，能借我钱吗？", "好");
+		nbc.train("小偷盗窃钱，还偷钱", "坏");
+		nbc.train("还偷钱", "坏");
+		int a = nbc.classifier.fCount("钱", "好");
+		int b = nbc.classifier.fCount("钱", "坏");
+		float c = nbc.fprob("盗窃", "坏");
+		float d = nbc.prob("借", "好");
+		float e = nbc.prob("借", "坏");
+		
+		System.out.println(nbc.classifier.getFc().toString());
+		System.out.println("a:" + a + "b:" + b + "c:" + c);
+		System.out.println("d:" + d + "e:" + e);
+	}
+}

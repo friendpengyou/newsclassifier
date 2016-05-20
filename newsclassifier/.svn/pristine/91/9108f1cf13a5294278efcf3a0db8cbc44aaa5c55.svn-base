@@ -1,0 +1,18 @@
+package com.yuan.service;
+
+public class FisherClassifier {
+	//需要用到朴素贝叶斯分类器中的一些方法
+	NaiveBayesClassifier nbc = new NaiveBayesClassifier();
+	
+	public float cProb(String f, String cat){
+		//特征在该分类中出现的概率
+		float clf = nbc.fprob(f, cat);
+		if(clf == 0){
+			return 0;
+		}
+		//特征在所有分类中出现的概率
+		float freqSum;
+		float p = 0;
+		return p;
+	}
+}

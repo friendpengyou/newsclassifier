@@ -1,0 +1,111 @@
+package com.yuan.dao;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.yuan.bean.News;
+import com.yuan.util.DBConnection;
+
+
+public class NewsDao {
+	public static  void save(News news) throws SQLException{
+		/*private int id; //新闻id
+		private String classifyid;//新闻所属类别id
+		private String sourceid;//新闻源类别id
+		private String docid;//原新闻id
+		private String title;//标题
+		private String content;//正文
+		private int commentnum;//评论数
+		private int scannum;//浏览数
+		private int time;//新闻时间
+		private int keys;//新闻关键词*/
+		
+		Connection conn = DBConnection.getConnection();
+		String sql = "INSERT INTO news (classifyid,sourceid,docid,title,content,commentnum,scannum,time) VALUES (?,?,?,?,?,?,?,?)";
+		PreparedStatement ps = null;
+		
+		ps = conn.prepareStatement(sql);
+		ps.setString(1, news.getClassifyid());
+		ps.setString(2, news.getSourceid());
+		ps.setString(3, news.getDocid());
+		ps.setString(4, news.getTitle());
+		ps.setString(5, news.getContent());
+		ps.setInt(6, news.getCommentnum());
+		ps.setInt(7, news.getScannum());
+		ps.setString(8, news.getTime());
+		//System.out.println(sql);
+		ps.executeUpdate();
+		//ps.execute();
+		System.out.println("save OK");
+		conn.close();
+	}
+	
+	public static int update(News news) throws SQLException{
+		Connection conn = createConn();
+		String sql = "select wechatname from news where wechatnum="+news.getWeChatNum();
+		PreparedStatement ps = conn.prepareStatement(sql);
+		if(ps.execute()){
+			String sql1 = "delete from news where  wechatnum="+news.getWeChatNum();
+			PreparedStatement ps1 = conn.prepareStatement(sql1);
+			ps1.executeUpdate();
+			conn.close();
+			save(news);
+			System.out.println("update OK");
+			return 1;
+		}
+		conn.close();
+		return -1;
+	}
+	
+	public static int delete() throws SQLException{
+		return 1;
+	}
+	
+	public static News query(String wechatnum) throws SQLException{
+		//wechatname,wechatnum,wechattype,originalid,appid,appsecret,wechatkeys
+		News oa = new News();
+		Connection conn = createConn();
+		String sql = "select * from news where  wechatnum='" + wechatnum + "'";
+		PreparedStatement ps = conn.prepareStatement(sql);
+		ResultSet result = ps.executeQuery();
+		while(result.next()){
+			oa.setName(result.getString(2));
+			oa.setWeChatNum(result.getString(3));
+			oa.setType(result.getString(4));
+			oa.setOriginalID(result.getString(5));
+			oa.setAppID(result.getString(6));
+			oa.setAppSecret(result.getString(7));
+			oa.setKeys(result.getString(8));
+		}
+		System.out.println("query OK");
+		conn.close();
+		return oa;
+	}
+	
+	public static List<News> queryAll() throws SQLException{
+		List<News> list = new ArrayList<News>();
+		News oa;
+		Connection conn = createConn();
+		String sql = "select * from news";
+		PreparedStatement ps = conn.prepareStatement(sql);
+		ResultSet result = ps.executeQuery();
+		while(result.next()){
+			oa = new News();
+			oa.setName(result.getString(2));
+			oa.setWeChatNum(result.getString(3));
+			oa.setType(result.getString(4));
+			oa.setOriginalID(result.getString(5));
+			oa.setAppID(result.getString(6));
+			oa.setAppSecret(result.getString(7));
+			oa.setKeys(result.getString(8));
+			list.add(oa);
+		}
+		System.out.println("queryAll OK");
+		conn.close();
+		return list;
+	}
+}

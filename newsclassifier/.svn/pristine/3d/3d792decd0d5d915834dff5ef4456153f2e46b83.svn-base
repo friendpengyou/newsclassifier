@@ -1,0 +1,39 @@
+package com.yuan.bean;
+
+import java.util.ArrayList;
+
+public class InfoMatrix {
+	private ArrayList<String> row0 = new ArrayList<String>();
+	private ArrayList<String> col0 = new ArrayList<String>();
+	private ArrayList<ArrayList<Float>> weightMatrix = new ArrayList<ArrayList<Float>>();
+	
+	public ArrayList<String> getRow0() {
+		return row0;
+	}
+	public void setRow0(ArrayList<String> row0) {
+		this.row0 = row0;
+	}
+	public ArrayList<String> getCol0() {
+		return col0;
+	}
+	public void setCol0(ArrayList<String> col0) {
+		this.col0 = col0;
+	}
+	public ArrayList<ArrayList<Float>> getWeightMatrix() {
+		return weightMatrix;
+	}
+	public void setWeightMatrix(ArrayList<ArrayList<Float>> weightMatrix) {
+		this.weightMatrix = weightMatrix;
+	}
+	
+	public String getRowNameValue(int rowValue){
+		return row0.get(rowValue);
+	}
+	
+	public String gerColNameValue(int colValue){
+		return col0.get(colValue);
+	}
+	
+	
+	
+}

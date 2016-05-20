@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="melibrary.com.genuitec.eclipse.j2eedt.core.MYECLIPSE_JAVAEE_5_CONTAINER"/>
+	<classpathentry kind="lib" path="C:/jar/mysql-connector-java-5.1.34-bin.jar"/>
+	<classpathentry kind="lib" path="C:/jar/org.json.jar"/>
+	<classpathentry kind="lib" path="C:/jar/participle/ansj_seg-2.0.7.jar" sourcepath="C:/jar/participle/ansj_seg-master"/>
+	<classpathentry kind="lib" path="C:/jar/participle/nlp-lang-0.3.jar"/>
+	<classpathentry kind="lib" path="C:/jar/Jama-1.0.3.jar"/>
+	<classpathentry kind="output" path="WebRoot/WEB-INF/classes"/>
+</classpath>

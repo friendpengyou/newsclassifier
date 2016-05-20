@@ -1,0 +1,38 @@
+package com.yuan.service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import com.yuan.bean.News;
+import com.yuan.dao.NewsDao;
+
+public class SearchNewsFromWYServiceImpl {
+	
+	
+	
+	
+	public static void main(String[] args) throws Exception {
+		//queryNews();
+		//News news = new News();
+		/*news.setClassifyid("科技");
+		news.setSourceid("wyxw");
+		news.setDocid("nihao");
+		news.setTitle("李世石");
+		news.setContent("AlphaGo 大战李世石，取得4:1胜利");
+		news.setCommentnum(100);
+		news.setScannum(10);
+		news.setTime("2016-03-19 23:06:00");*/
+		//NewsDao.save(news);
+		/*news.setDocid("nihao");
+		news.setNewskeys("李世石 AlphaGo 人工智能 人机大战 ");
+		NewsDao.updateKeys(news);*/
+		NewsDao.queryByDocid("nihao");
+		NewsDao.query("科技", 3);
+		NewsDao.queryAllNews();
+	}
+}

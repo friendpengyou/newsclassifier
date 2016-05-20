@@ -1,0 +1,37 @@
+package com.yuan.service;
+
+import java.sql.SQLException;
+import java.util.List;
+
+import org.json.JSONObject;
+
+import com.yuan.bean.News;
+import com.yuan.dao.NewsDao;
+import com.yuan.util.ArticleParticiple;
+
+public class NewsParticiple {
+	
+	public static void allNewsParticiple() throws SQLException{
+		List<News> newsList = NewsDao.queryAllNews();
+		JSONObject jb;
+		for (News news : newsList){
+			jb = newsParticiple(news);
+			news.setNewskeys(jb.toString());
+			NewsDao.updateKeys(news);
+		}
+	}
+	
+	public static JSONObject newsParticiple(News news) throws SQLException{
+		//String docidStr = "BIJJU14200364O9M";
+		//News news = NewsDao.queryByDocid(docidStr);
+		String title = news.getTitle();
+		String content = news.getContent();
+		JSONObject jb = ArticleParticiple.getKeyWordsJson(title, content);
+		System.out.println(jb);
+		return jb;
+	}
+	
+	public static void main(String[] args) throws SQLException {
+		allNewsParticiple();
+	}
+}

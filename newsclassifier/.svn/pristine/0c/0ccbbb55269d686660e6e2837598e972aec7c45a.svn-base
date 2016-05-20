@@ -1,0 +1,245 @@
+package com.yuan.classifier;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.Map.Entry;
+
+import org.json.JSONObject;
+
+import com.yuan.bean.InfoMatrix;
+import com.yuan.bean.News;
+import com.yuan.dao.NewsDao;
+import com.yuan.util.ArticleParticiple;
+
+public class KNNClassifier {
+    
+	public int keyWordNum;
+	public KNNClassifier(int keyWordNum){
+		this.keyWordNum = keyWordNum;
+	}
+	public InfoMatrix infoMatrix = new InfoMatrix();
+	
+	
+    public static void main(String[] args) throws SQLException {
+    	KNNClassifier knnCl = new KNNClassifier(100);
+    	knnCl.trainingData();
+    	float f = knnCl.testData(10);//10个最相近的类型
+        System.out.println(f);
+	}
+    
+    /**
+	 * 将内容项item拆分为彼此独立的特征，将信息添加到文章-特征矩阵
+	 * @param item
+	 * @param cat
+	 */
+	public void train(News news){
+		JSONObject features = ArticleParticiple.getKeyWordsScoreJson(news.getTitle(), news.getContent(), keyWordNum);
+		infoMatrix.addElement(news.getClassifyid(), features);
+	}
+	
+	public String KNNClassify(News news, int k){
+		JSONObject features = ArticleParticiple.getKeyWordsScoreJson(news.getTitle(), news.getContent(), keyWordNum);
+		infoMatrix.addElement(news.getClassifyid(), features);//添加测试数据
+		Map<Float, String> map = matrixOperation();
+		return classifyMaxProb(map, k);
+	}
+	
+	/**
+	 * 矩阵运算，最后一行测试数据与其它训练数据做向量相乘运算
+	 * @return
+	 */
+	public Map<Float, String> matrixOperation(){
+		//测试数据（最后一行）与其它行依次做相乘运算
+		ArrayList<ArrayList<Float>> weightMatrix = infoMatrix.getWeightMatrix();
+		int NewsNum = weightMatrix.size();
+		ArrayList<Float> testNewsWeight = weightMatrix.get(NewsNum - 1);
+		ArrayList<Float> trainNewsWeight;
+		Map<Float, String> weightMap = new HashMap<Float, String>();
+		float weight;
+		
+		for(int i=0; i<NewsNum - 1; i++){
+			trainNewsWeight = weightMatrix.get(i);
+			weight = vectorOperation(testNewsWeight, trainNewsWeight);
+			weightMap.put(weight, infoMatrix.getRow0().get(i));
+		}
+		Map<Float, String> resultMap = sortMapByKey(weightMap);	//按Key进行排序
+		return resultMap;
+	}
+	
+	/**
+	 * 两个向量矩阵相乘
+	 * @param testNewsWeight
+	 * @param trainNewsWeight
+	 * @return
+	 */
+	public float vectorOperation(ArrayList<Float> testNewsWeight, ArrayList<Float> trainNewsWeight){
+		float result = 0.0f;
+		int testLen = testNewsWeight.size();
+		int trainLen = trainNewsWeight.size();
+		int len = Math.min(testLen, trainLen);
+		
+		for(int i=0; i<len; i++){
+			result += testNewsWeight.get(i) * trainNewsWeight.get(i);
+		}
+		return result;
+	}
+    
+
+	/**
+	 * 使用 Map按key进行排序
+	 * @param map
+	 * @return
+	 */
+	public static Map<Float, String> sortMapByKey(Map<Float, String> map) {
+		if (map == null || map.isEmpty()) {
+			return null;
+		}
+
+		Map<Float, String> sortMap = new TreeMap<Float, String>(
+				new Comparator<Float>(){
+					public int compare(Float o1, Float o2) {
+						//降序排
+						return o2.compareTo(o1);
+					}
+				});
+		sortMap.putAll(map);
+		return sortMap;
+	}
+	
+	/**
+	 * 使用 Map按value进行排序
+	 * @param map
+	 * @return
+	 */
+	public static Map<String, Integer> sortMapByValue(Map<String, Integer> map) {
+		if (map == null || map.isEmpty()) {
+			return null;
+		}
+		//这里将map.entrySet()转换成list
+        List<Map.Entry<String,Integer>> list = new ArrayList<Map.Entry<String,Integer>>(map.entrySet());
+        //然后通过比较器来实现排序
+        Collections.sort(list,new Comparator<Map.Entry<String,Integer>>() {
+            //升序排序
+            public int compare(Entry<String, Integer> o1,
+                    Entry<String, Integer> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
+        
+        Iterator<Map.Entry<String, Integer>> iter = list.iterator();
+		Map.Entry<String, Integer> tmpEntry = null;
+		Map<String, Integer> sortedMap = new LinkedHashMap<String, Integer>();
+		while (iter.hasNext()) {
+			tmpEntry = iter.next();
+			sortedMap.put(tmpEntry.getKey(), tmpEntry.getValue());
+		}
+		return sortedMap;
+	}
+	
+	/**
+	 * 返回map中前k个值中分类的个数最多的类型
+	 * @param map
+	 * @param k
+	 * @return
+	 */
+	public String classifyMaxProb(Map<Float, String> map, int k){
+		Map<String, Integer> classMap = new HashMap<String, Integer>();
+		Set<Entry<Float, String>> set = map.entrySet();
+		String classfy = null;
+		int n = 0;
+		for(Entry<Float, String> entry : set){
+			if(n > k){
+				break;
+			}
+			classfy = entry.getValue();
+			if(classMap.containsKey(classfy)){
+				classMap.put(classfy, classMap.get(classfy) + 1);
+			}else {
+				classMap.put(classfy, 1);
+			}
+			n++;
+		}
+		Map<String, Integer> sortMap = sortMapByValue(classMap);
+		Iterator<Entry<String, Integer>> ite = sortMap.entrySet().iterator();
+		while(ite.hasNext()){
+			classfy = ite.next().getKey();
+			break;
+		}
+		return classfy;
+	}
+	
+	
+    /**
+	 * 提取训练数据
+	 * @return
+	 * @throws SQLException
+	 */
+	public List<News> getTrainData() throws SQLException{
+		List<News> newsList = NewsDao.queryAllNews();
+		return newsList;
+	}
+	
+	/**
+	 * 训练数据
+	 * @param nbc
+	 * @throws SQLException
+	 */
+	public  void trainingData() throws SQLException{
+		List<News> newsList = getTrainData();
+		for(News news : newsList){
+			train(news);
+		}
+	}
+	/**
+	 * 提取测试数据
+	 * @return
+	 * @throws SQLException
+	 */
+	public List<News> getTestData() throws SQLException{
+		List<News> testNews = NewsDao.queryAllTestNews();
+		return testNews;
+	}
+	
+	/**
+	 * 测试数据
+	 * @param nbc
+	 * @return 正确率
+	 * @throws SQLException
+	 */
+	public float testData(int k) throws SQLException{
+		List<News> testNews = getTestData();
+		int testNewsNum = testNews.size();
+		int trueNums = 0;
+		for(News news : testNews){
+			if(testNews(news, k)){
+				trueNums++;
+			}
+		}
+		return (float)trueNums / testNewsNum;
+	}
+	
+	/**
+	 * 测试新闻news
+	 * @param nbc
+	 * @param news
+	 * @return 若分类器分的类型与新闻原类型相同，返回true，否则返回false
+	 */
+	public Boolean testNews(News news, int k){
+		String classifyid = news.getClassifyid();
+		String testCategory = KNNClassify(news, k);
+		
+		if(classifyid.equals(testCategory)){
+			return true;
+		}
+		return false;
+	}
+}

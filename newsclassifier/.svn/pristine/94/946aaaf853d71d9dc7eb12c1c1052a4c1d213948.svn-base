@@ -1,0 +1,109 @@
+package com.yuan.service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import com.yuan.bean.News;
+import com.yuan.dao.NewsDao;
+
+public class SearchNewsFromWYServiceImpl {
+	/**
+	 * 提取出原始新闻
+	 * 说明：暂时只提取唐山的新闻
+	 * @param keys
+	 * @throws Exception 
+	 */
+	public static List<Map<String, String>> queryNews() throws Exception{
+		String digestUrl = "http://c.m.163.com/nc/article/local/5ZSQ5bGx/3-20.html";
+		//String degestJson = IReadNewsFromURL.getContentByUrl(digestUrl);
+		return extractNews("");
+	}
+	
+	public static List<Map<String, String>> extractNews(String degestJson) throws Exception{
+		List<Map<String, String>> listMap = new ArrayList<Map<String, String>>(); 
+		JSONObject jsonObj = new JSONObject(degestJson);
+		Map<String, String> newMap;
+		JSONObject news, textJson;
+		String docId, textUrl, text, title, imgsrc, img, textStr;
+		JSONArray imgs;
+		int newsNum = 0;
+		String style = "<style> p{ font-size: 18px; color: #333; margin-top: 20px; line-height: 28px; text-align: justify; word-break: normal;} </style>";
+		//获取前5篇新闻
+		for (int i=0; i<=10; i++){
+			if (newsNum > 4){
+				break;
+			}
+			//获取每篇新闻的摘要信息
+			news = jsonObj.getJSONArray("唐山").getJSONObject(i);
+			docId = news.getString("docid");
+			title = news.getString("title");//标题 
+			imgsrc = news.getString("imgsrc");//缩略图
+			System.out.println(i + ":docId:" + docId + ", title:" + title + ", imgsrc:" + imgsrc);
+			
+			//获取文章正文
+			textUrl = "http://c.m.163.com/nc/article/" + docId + "/full.html";
+			//textStr = IReadNewsFromURL.getContentByUrl(textUrl);
+			textStr = "";
+			
+			if ("error".equals(textStr)){
+				continue;
+			}
+			newsNum++;
+			
+			textJson = new JSONObject(textStr);
+			text = textJson.getJSONObject(docId).getString("body");
+			imgs = textJson.getJSONObject(docId).getJSONArray("img");
+			if (imgs.length() > 0){
+				img = imgs.getJSONObject(0).getString("src");
+				System.out.println("img:" + img);
+			}else {
+				img = imgsrc;
+			}
+			text = reviseText(text, imgs);//正文
+			//System.out.println("text:" + text);
+			
+			String formatText = text + style;
+			formatText = formatText.replace("<p>����", "<p>");//段落首行不缩进
+			System.out.println("formatText:" + formatText);
+			
+			newMap = new HashMap<String, String>();
+			newMap.put("title", title);
+			newMap.put("img", img);
+			newMap.put("thumbnail", imgsrc);
+			newMap.put("text", formatText);
+			listMap.add(newMap);
+		}
+		return listMap;
+	}
+	
+	public static String reviseText(String body, JSONArray imgs){
+		//JSONArray imgsArray = new JSONArray(imgs);
+		String ref, src;
+		for (int i=0; i<imgs.length(); i++){
+			ref = imgs.getJSONObject(i).getString("ref");
+			src = imgs.getJSONObject(i).getString("src");
+			body = body.replace(ref, "<img src=\"" + src + "\"/>");
+		}
+		return body;
+	}
+	
+	
+	public static void main(String[] args) throws Exception {
+		//queryNews();
+		News news = new News();
+		news.setClassifyid("科技");
+		news.setSourceid("wyxw");
+		news.setDocid("nihao");
+		news.setTitle("李世石");
+		news.setContent("AlphaGo 大战李世石，取得4:1胜利");
+		news.setCommentnum(100);
+		news.setScannum(10);
+		news.setTime("2016-03-19 23:06:00");
+		NewsDao.save(news);
+	}
+}

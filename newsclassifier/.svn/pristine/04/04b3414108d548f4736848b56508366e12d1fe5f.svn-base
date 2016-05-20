@@ -1,0 +1,73 @@
+package com.yuan.service;
+
+import java.util.Set;
+
+import com.yuan.util.ArticleParticiple;
+
+public class FisherClassifier {
+	//假设未来将会收到的文档在各个分类中 的数量是相当的
+	//需要用到朴素贝叶斯分类器中的一些方法
+	NaiveBayesClassifier nbc = new NaiveBayesClassifier();
+	
+	/**
+	 * 一篇文档出现某个特征时，该文档属于某个分类的可能性
+	 * @param f
+	 * @param cat
+	 * @return
+	 */
+	public float cProb(String f, String cat){
+		//特征在该分类中出现的概率
+		float clf = nbc.fprob(f, cat);
+		if(clf == 0){
+			return 0;
+		}
+		//特征在所有分类中出现的概率
+		float freqSum = 0;
+		Set<String> cateSet = nbc.classifier.categories();
+		for(String cate : cateSet){
+			freqSum += nbc.fprob(f, cate);
+		}
+		//概率等于特征在该分类中出现的概率除以总体概率
+		return clf / freqSum;
+	}
+	
+	
+	/**
+	 * 将各个特征的概率值组合起来， 形成一个总的概率值
+	 * @param item
+	 * @param cat
+	 * @return
+	 */
+	public float fisherProb(String item, String cat){
+		//将所有概率值相乘
+		float p = 1;
+		Set<String> kwSet = ArticleParticiple.getKeyWords(item);
+		for(String kw : kwSet){
+			p *= nbc.weigthedprob(kw, cat, "fisher");
+		}
+		
+		//取自然对数，并乘以-2
+		double fScore = -2 * Math.log(p);
+		//利用倒置对数卡方函数求得概率
+		return (float) invchi2(fScore, kwSet.size()*2);
+	}
+	
+	/**
+	 * 倒置对数卡方函数
+	 * @param chi
+	 * @param df
+	 * @return
+	 */
+	public double invchi2(double chi, int df){
+		double m = chi / 2.0;
+		double sum, term;
+		sum = term = Math.exp(m);
+		for(int i=0; i<df/2; i++){
+			term *= m / i;
+			sum += term;
+		}
+		return Math.min(sum, 1.0);
+	}
+	
+	
+}

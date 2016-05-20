@@ -1,0 +1,37 @@
+package com.yuan.util;
+
+import java.util.List;
+
+import org.ansj.app.keyword.KeyWordComputer;
+import org.ansj.app.keyword.Keyword;
+import org.ansj.splitWord.impl.GetWordsImpl;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class ArticleParticiple {
+	static int keyWordNum = 20;
+	static KeyWordComputer kwc = new KeyWordComputer(keyWordNum);
+	
+	/**
+	 * 计算关键字和权重，放到一个 JSONObject 里面
+	 * @param title
+	 * @param content
+	 * @return
+	 * @throws JSONException 
+	 */
+	public static JSONObject getKeyWordsJson(String title, String content) throws JSONException{
+		JSONObject keyWordsJson = new JSONObject();
+		List<Keyword> kw = kwc.computeArticleTfidf(title, content);
+		
+		for(int i = 0; i < kw.size(); i++){
+			keyWordsJson.put(kw.get(i).getName(), kw.get(i).getScore());
+		}
+		return keyWordsJson;
+	}
+	
+	public static String test(String content){
+		GetWordsImpl gwi = new GetWordsImpl(content);
+		String allWords = gwi.allWords();
+		return allWords;
+	}
+}

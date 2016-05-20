@@ -1,0 +1,58 @@
+package com.yuan.util;
+
+import java.util.List;
+
+import org.ansj.app.keyword.KeyWordComputer;
+import org.ansj.app.keyword.Keyword;
+import org.ansj.domain.Term;
+import org.ansj.splitWord.analysis.NlpAnalysis;
+import org.ansj.splitWord.analysis.ToAnalysis;
+import org.ansj.splitWord.impl.GetWordsImpl;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class ArticleParticiple {
+	static int keyWordNum = 20;
+	static KeyWordComputer kwc = new KeyWordComputer(keyWordNum);
+	
+	/**
+	 * 计算关键字和权重，放到一个 JSONObject 里面
+	 * @param title
+	 * @param content
+	 * @return
+	 * @throws JSONException 
+	 */
+	public static JSONObject getKeyWordsJson(String title, String content) throws JSONException{
+		JSONObject keyWordsJson = new JSONObject();
+		List<Keyword> kw = kwc.computeArticleTfidf(title, content);
+		
+		for(int i = 0; i < kw.size(); i++){
+			keyWordsJson.put(kw.get(i).getName(), kw.get(i).getFreq());
+		}
+		return keyWordsJson;
+	}
+	
+	/**
+	 * ansj精准分词,易用性,稳定性.准确性.以及分词效率上.都取得了一个不错的平衡.
+	 * @param content
+	 * @return
+	 */
+	public static List<Term> toAnalysis(String content){
+		return ToAnalysis.parse(content);
+	}
+	
+	/**
+	 * nlp的适用方式.1.语法实体名抽取.未登录词整理.只要是对文本进行发现分析等工作,40w字每秒的速度
+	 * @param content
+	 * @return
+	 */
+	public static List<Term> nlpAnalysis(String content){
+		return NlpAnalysis.parse(content);
+	}
+	
+	public static String test(String content){
+		GetWordsImpl gwi = new GetWordsImpl(content);
+		String allWords = gwi.allWords();
+		return allWords;
+	}
+}

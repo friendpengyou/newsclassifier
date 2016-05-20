@@ -1,0 +1,158 @@
+package com.yuan.dao;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.yuan.bean.News;
+import com.yuan.util.DBConnection;
+
+
+public class NewsDao {
+	
+	/**
+	 * 添加一条新闻
+	 * @param news
+	 * @throws SQLException
+	 */
+	public static  void save(News news) throws SQLException{
+		Connection conn = DBConnection.getConnection();
+		String sql = "INSERT INTO news (classifyid,sourceid,docid,title,content,commentnum,scannum,ptime) VALUES (?,?,?,?,?,?,?,?)";
+		PreparedStatement ps = null;
+		
+		ps = conn.prepareStatement(sql);
+		ps.setString(1, news.getClassifyid());
+		ps.setString(2, news.getSourceid());
+		ps.setString(3, news.getDocid());
+		ps.setString(4, news.getTitle());
+		ps.setString(5, news.getContent());
+		ps.setInt(6, news.getCommentnum());
+		ps.setInt(7, news.getScannum());
+		ps.setString(8, news.getPtime());
+		ps.executeUpdate();
+		//ps.execute();
+		System.out.println("save OK");
+		DBConnection.close(conn);
+	}
+	
+	/**
+	 * 保存多条新闻
+	 * @param newsList
+	 * @throws SQLException
+	 */
+	public static  void saveAll(List<News> newsList) throws SQLException{
+		for(News news : newsList){
+			save(news);
+		}
+ 	}
+	
+	/**
+	 * 更新某条新闻的关键词
+	 * @param news
+	 * @return
+	 * @throws SQLException
+	 */
+	public static int updateKeys(News news) throws SQLException{
+		Connection conn = DBConnection.getConnection();
+		String sql = "update news set newskeys = \"" + news.getNewskeys() + "\" where docid = '" + news.getDocid() + "'";
+		PreparedStatement ps = conn.prepareStatement(sql);
+		ps.execute();
+		System.out.println("update OK");
+		DBConnection.close(conn);
+		return 1;
+	}
+	
+	/**
+	 * 删除所有新闻
+	 * @return
+	 * @throws SQLException
+	 */
+	public static int delete() throws SQLException{
+		Connection conn = DBConnection.getConnection();
+		String sql = "delete from news";
+		PreparedStatement ps = conn.prepareStatement(sql);
+		ps.execute();
+		System.out.println("delete allInfo OK");
+		DBConnection.close(conn);
+		return 1;
+	}
+	
+	/**
+	 * 根据条件SQLString查询新闻
+	 * @param factor
+	 * @return
+	 * @throws SQLException
+	 */
+	private static List<News> query(String SQLString) throws SQLException{
+		List<News> list = new ArrayList<News>();
+		News oa = new News();
+		Connection conn = DBConnection.getConnection();
+		String sql = SQLString;
+		PreparedStatement ps = conn.prepareStatement(sql);
+		ResultSet result = ps.executeQuery();
+		while(result.next()){
+			oa.setClassifyid(result.getString(2));
+			oa.setSourceid(result.getString(3));
+			oa.setDocid(result.getString(4));
+			oa.setTitle(result.getString(5));
+			oa.setContent(result.getString(6));
+			oa.setCommentnum(result.getInt(7));
+			oa.setScannum(result.getInt(8));
+			oa.setPtime(result.getString(9));
+			oa.setNewskeys(result.getString(10));
+			
+			list.add(oa);
+		}
+		DBConnection.close(conn);
+		return list;
+	}
+	
+	/**
+	 * 通过docid查找指定新闻
+	 * @param docidValue
+	 * @return
+	 * @throws SQLException
+	 */
+	public static News queryByDocid(String docid) throws SQLException{
+		List<News> list = new ArrayList<News>();
+		News oa = new News();
+		String sql = "select * from news where  docid ='" + docid + "'";
+		list = query(sql);
+		for(News news : list){//只有一条新闻
+			oa = news;
+		}
+		System.out.println("query news by docid OK");
+		return oa;
+	}
+	
+	/**
+	 * 根据新闻类型查询num条新闻
+	 * @param classifyid
+	 * @param num
+	 * @return
+	 * @throws SQLException
+	 */
+	public static List<News> query(String classifyid, int num) throws SQLException{
+		List<News> list = new ArrayList<News>();
+		String sql = "select * from news where  classifyid='" + classifyid + "' limit 0," + num;
+		list = query(sql);
+		System.out.println("query news " + list.size() + " 条 OK");
+		return list;
+	}
+	
+	/**
+	 * 查询所有新闻
+	 * @return
+	 * @throws SQLException
+	 */
+	public static List<News> queryAllNews() throws SQLException{
+		List<News> list = new ArrayList<News>();
+		String sql = "select * from news";
+		list = query(sql);
+		System.out.println("queryAllNews OK");
+		return list;
+	}
+}

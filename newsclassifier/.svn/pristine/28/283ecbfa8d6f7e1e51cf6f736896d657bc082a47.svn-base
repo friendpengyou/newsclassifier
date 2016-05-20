@@ -1,0 +1,145 @@
+package com.yuan.service;
+
+import java.util.Iterator;
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import com.yuan.bean.News;
+import com.yuan.dao.NewsDao;
+import com.yuan.util.ReadContentFromURL;
+
+public class SearchNewsFromWYServiceImpl {
+	
+	/**
+	 * 按新闻分类爬取新闻
+	 * @throws Exception
+	 */
+	public static void crawlingNews() throws Exception{
+		String url = "{'推荐':'BA8J7DG9wangning','新闻':'BBM54PGAwangning','娱乐':'BA10TA81wangning','体育':'BA8E6OEOwangning','财经':'BA8EE5GMwangning'," +
+				"'时尚':'BA8F6ICNwangning','军事':'BAI67OGGwangning','手机':'BAI6I0O5wangning','科技':'BA8D4A3Rwangning','游戏':'BAI6RHDKwangning'," +
+				"'数码':'BAI6JOD9wangning','教育':'BA8FF5PRwangning','健康':'BDC4QSV3wangning','汽车':'BA8DOPCSwangning','家居':'BAI6P3NDwangning'," +
+				"'房产':'BAI6MTODwangning','旅游':'BEO4GINLwangning','亲子':'BEO4PONRwangning'}";
+		JSONObject jsonObj = new JSONObject(url);
+		Iterator<String> it = jsonObj.keys();  
+		String classify, value, result;
+	       // 遍历jsonObject数据
+	       while (it.hasNext())  
+	       {  
+	           classify = it.next();  
+	           value = jsonObj.get(classify).toString();  
+	           result = crawlingNewsInfo(classify, value);
+	           if("failure".equals(result)){
+	        	   continue;
+	           }
+	       }  
+	}
+	
+	/**
+	 * 爬取某类新闻，并存储到MySQL 
+	 * @param classify
+	 * @param classifyValue
+	 * @throws Exception
+	 */
+	public static String crawlingNewsInfo(String classify, String classifyValue) throws Exception{
+		String newsUrl = "http://3g.163.com/touch/article/list/" + classifyValue + "/0-30.html";
+        String newsInfo = ReadContentFromURL.getContentByUrl(newsUrl);
+        JSONObject jsonObjAll = null;
+        try{
+        	newsInfo = newsInfo.substring(newsInfo.indexOf("(") + 1, newsInfo.indexOf(")"));
+        	jsonObjAll = new JSONObject(newsInfo);
+        }catch(Exception e){
+        	return "failure";
+        }
+        
+        JSONArray jsonArrayAll =  jsonObjAll.getJSONArray(classifyValue);
+        for(int i=0; i<jsonArrayAll.length(); i++){
+        	JSONObject oneNews = jsonArrayAll.getJSONObject(i);
+        	System.out.println(oneNews);
+        	News news = getNewsObject(classify, oneNews);
+        	if("".equals(news.getContent())){
+        		continue;
+        	}
+        	NewsDao.saveTrainingData(news); //保存新闻到训练集
+        	//NewsDao.saveTestData(news);  //保存新闻到测试集
+        }
+        return "success";
+	}
+	
+	/**
+	 * 爬取新闻信息
+	 * @param classify
+	 * @param jsonObject
+	 * @return NewsObject
+	 * @throws Exception
+	 */
+	public static News getNewsObject(String classify, JSONObject jsonObject) throws Exception{
+		News news = new News();
+		news.setClassifyid(classify);
+		news.setSourceid("wyxw");
+		news.setTitle(jsonObject.getString("title"));
+		news.setCommentnum(jsonObject.getInt("commentCount"));
+		news.setPtime(jsonObject.getString("ptime"));
+		
+		String docid = jsonObject.getString("docid");
+		news.setDocid(docid);
+		news.setContent(getNewsContent(docid));
+		return news;
+	}
+	
+	/**
+	 * 爬取新闻Body
+	 * @param docid
+	 * @return body
+	 * @throws Exception
+	 */
+	public static String getNewsContent(String docid) throws Exception{
+		String contentUrl = "http://3g.163.com/touch/article/" + docid + "/full.html";
+		String body;
+		 try{
+			String contentStr = ReadContentFromURL.getContentByUrl(contentUrl);
+			contentStr = contentStr.substring(contentStr.indexOf("(") + 1, contentStr.lastIndexOf(")"));
+	        JSONObject jsonObjContent = new JSONObject(contentStr);
+	        
+	        JSONObject jsonObj =  jsonObjContent.getJSONObject(docid);
+       
+	        body = jsonObj.getString("body");
+        }catch(Exception e){
+        	return "";
+        }
+        return formatBody(body);
+	}
+	
+	public static String formatBody(String body){
+		return body.replaceAll("<!--IMG#0-->", "").replaceAll("<p>", "").replaceAll("</p>", "")
+				.replaceAll("<strong>", "").replaceAll("</strong>", "").replaceAll("<!--splitpage-->", "").trim();
+	}
+	
+	public static void main(String[] args) throws Exception {
+		//queryNews();
+		//News news = new News();
+		/*news.setClassifyid("科技");
+		news.setSourceid("wyxw");
+		news.setDocid("nihao");
+		news.setTitle("李世石");
+		news.setContent("AlphaGo 大战李世石，取得4:1胜利");
+		news.setCommentnum(100);
+		news.setScannum(10);
+		news.setTime("2016-03-19 23:06:00");*/
+		//NewsDao.save(news);
+		/*news.setDocid("nihao");
+		news.setNewskeys("李世石 AlphaGo 人工智能 人机大战 ");
+		NewsDao.updateKeys(news);*/
+		/*NewsDao.queryByDocid("nihao");
+		NewsDao.query("科技", 3);
+		NewsDao.queryAllNews();*/
+		//NewsDao.delete();
+		//crawlingNews();
+		/*List<News> newsList = NewsDao.query("科技", 3);
+		for(News news : newsList){
+			System.out.println(news.getTitle());
+		}*/
+		crawlingNews();
+	}
+}
